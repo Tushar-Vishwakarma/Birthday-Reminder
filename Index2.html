@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Birthday Reminder</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #ff6b6b;
+            margin-top: 20px;
+        }
+        #filters {
+            display: flex;
+            margin: 20px 0;
+        }
+        #filters button {
+            margin: 0 5px;
+            padding: 8px 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            color: white;
+            background-color: #333;
+        }
+        #filters .active {
+            background-color: #ff6b6b;
+        }
+        .birthday-item {
+            background-color: #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px;
+            width: 80%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .days-left {
+            font-size: 14px;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        .days-left.today {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+        #popup {
+            display: none;
+            position: fixed;
+            top: 20px;
+            background: #333;
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px #000;
+        }
+        #form-container {
+            margin: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #form-container input, #form-container select, #form-container button {
+            padding: 10px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        #form-container button {
+            background-color: #ff6b6b;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Birthday Reminder</h1>
+
+<div id="popup">
+    <span id="popupMessage"></span>
+    <button onclick="closePopup()">Close</button>
+</div>
+
+<div id="filters">
+    <button onclick="filterCategory('all')" class="active" id="allFilter">All</button>
+    <button onclick="filterCategory('family')" id="familyFilter">Family</button>
+    <button onclick="filterCategory('friends')" id="friendsFilter">Friends</button>
+    <button onclick="filterCategory('work')" id="workFilter">Work</button>
+</div>
+
+<div id="form-container">
+    <input type="text" id="name" placeholder="Name" required>
+    <input type="date" id="birthday" required>
+    <select id="category">
+        <option value="family">Family</option>
+        <option value="friends">Friends</option>
+        <option value="work">Work</option>
+    </select>
+    <button onclick="saveBirthday()">Save Birthday</button>
+</div>
+
+<div id="birthdayList"></div>
+
+<script>
+    let birthdays = JSON.parse(localStorage.getItem('birthdays')) || [
+        { name: 'Rishabh', date: '2024-11-15', category: 'friends' },
+        { name: 'Punam', date: '2025-01-29', category: 'family' },
+        { name: 'Jaideep', date: '2025-02-24', category: 'work' },
+    ];
+    let editIndex = null;
+    let currentFilter = 'all';
+
+    function saveToLocalStorage() {
+        localStorage.setItem('birthdays', JSON.stringify(birthdays));
+    }
+
+    function saveBirthday() {
+        const name = document.getElementById('name').value;
+        const date = document.getElementById('birthday').value;
+        const category = document.getElementById('category').value;
+
+        if (name && date) {
+            const birthdayData = { name, date, category };
+            if (editIndex !== null) {
+                birthdays[editIndex] = birthdayData;
+                editIndex = null;
+            } else {
+                birthdays.push(birthdayData);
+            }
+            saveToLocalStorage();
+            clearForm();
+            displayBirthdays();
+        } else {
+            alert("Please enter both name and date");
+        }
+    }
+
+    function clearForm() {
+        document.getElementById('name').value = '';
+        document.getElementById('birthday').value = '';
+        document.getElementById('category').value = 'family';
+    }
+
+    function displayBirthdays() {
+        const birthdayList = document.getElementById('birthdayList');
+        birthdayList.innerHTML = '';
+
+        const filteredBirthdays = currentFilter === 'all' ? birthdays : birthdays.filter(b => b.category === currentFilter);
+
+        filteredBirthdays.forEach((b, index) => {
+            const daysLeft = daysUntilBirthday(b.date);
+            const isToday = daysLeft === 0 ? 'today' : '';
+            const birthdayItem = document.createElement('div');
+            birthdayItem.className = 'birthday-item';
+            birthdayItem.innerHTML = `
+                <div>
+                    <h3>${b.name}</h3>
+                    <p class="birthday-date">${new Date(b.date).toLocaleDateString()}</p>
+                    <small>Category: ${b.category}</small>
+                </div>
+                <div>
+                    <span class="days-left ${isToday}">${daysLeft === 0 ? 'Today' : daysLeft + ' days'}</span>
+                    <button onclick="editBirthday(${index})">Edit</button>
+                    <button onclick="deleteBirthday(${index})">Delete</button>
+                </div>
+            `;
+            birthdayList.appendChild(birthdayItem);
+        });
+
+        saveToLocalStorage();
+    }
+
+    function editBirthday(index) {
+        const birthday = birthdays[index];
+        document.getElementById('name').value = birthday.name;
+        document.getElementById('birthday').value = birthday.date;
+        document.getElementById('category').value = birthday.category;
+        editIndex = index;
+    }
+
+    function deleteBirthday(index) {
+        birthdays.splice(index, 1);
+        saveToLocalStorage();
+        displayBirthdays();
+    }
+
+    function filterCategory(category) {
+        currentFilter = category;
+        document.querySelectorAll('#filters button').forEach(button => button.classList.remove('active'));
+        document.getElementById(`${category}Filter`).classList.add('active');
+        displayBirthdays();
+    }
+
+    function daysUntilBirthday(date) {
+        const today = new Date();
+        const birthday = new Date(date);
+        birthday.setFullYear(today.getFullYear());
+        if (birthday < today) {
+            birthday.setFullYear(today.getFullYear() + 1);
+        }
+        return Math.ceil((birthday - today) / (1000 * 60 * 60 * 24));
+    }
+
+    function checkReminders() {
+        const upcomingBirthdays = birthdays.filter(b => {
+            const daysLeft = daysUntilBirthday(b.date);
+            return daysLeft <= 3;
+        });
+
+        if (upcomingBirthdays.length > 0) {
+            const reminderMessages = upcomingBirthdays.map(b => {
+                const daysLeft = daysUntilBirthday(b.date);
+                return `${b.name}'s birthday is ${daysLeft === 0 ? "today" : "in " + daysLeft + " days"}`;
+            });
+            showPopup(reminderMessages.join("<br>"));
+        }
+    }
+
+    function showPopup(message) {
+        const popup = document.getElementById('popup');
+        document.getElementById('popupMessage').innerHTML = message;
+        popup.style.display = 'block';
+    }
+
+    function closePopup() {
+        document.getElementById('popup').style.display = 'none';
+    }
+
+    // Initialize
+    displayBirthdays();
+    checkReminders();
+</script>
+
+</body>
+</html>
