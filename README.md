@@ -37,3 +37,11 @@ Technologies Used
 - CSS
 - JavaScript (localStorage for persistent data)
 
+Index
+![Uploading image.png…]()
+
+
+Index2.0
+<img width="823" alt="image" src="https://github.com/user-attachments/assets/0bfd5ab1-84b2-4135-a09b-1fb0d13255a1">
+
+
