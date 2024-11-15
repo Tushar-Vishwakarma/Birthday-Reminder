@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Birthday Reminder App</title>
+    <style>
+        /* Basic styling */
+        body { font-family: Arial, sans-serif; background-color: #121212; color: #FFFFFF; }
+        .container { max-width: 500px; margin: auto; padding: 20px; }
+        
+        /* Header */
+        h1 { text-align: center; margin-bottom: 20px; color: #FFFFFF; font-size: 24px; }
+        
+        /* Filter buttons */
+        .filter-buttons { display: flex; justify-content: space-around; margin-bottom: 15px; }
+        .filter-buttons button {
+            flex: 1;
+            background-color: #333;
+            color: #FFFFFF;
+            padding: 10px;
+            border: none;
+            margin: 0 5px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .filter-buttons button.active { background-color: #575757; }
+
+        /* Birthday Counter */
+        .birthday-counter {
+            background-color: #4CAF50;
+            color: #000000;
+            padding: 5px;
+            border-radius: 5px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* Birthday List */
+        .birthday-section { margin-top: 15px; }
+        .month-header { font-size: 20px; color: #FF4081; margin: 10px 0; }
+
+        /* Birthday Item */
+        .birthday-item {
+            background-color: #1E1E1E;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            color: #FFFFFF;
+        }
+        .birthday-item h3 { margin: 0; font-size: 18px; }
+        .birthday-date { color: #888; font-size: 14px; }
+        .days-left {
+            background-color: #333;
+            padding: 5px 10px;
+            border-radius: 20px;
+            color: #FFFFFF;
+            font-size: 12px;
+            text-align: center;
+        }
+        .days-left.today { background-color: #FF4081; }
+        
+        /* Add/Edit Birthday Form */
+        .add-birthday { display: flex; gap: 10px; margin-top: 20px; }
+        .add-birthday input { padding: 10px; border-radius: 5px; border: none; flex-grow: 1; }
+        .add-birthday button {
+            padding: 10px; background-color: #4CAF50; color: white;
+            border: none; border-radius: 5px; cursor: pointer;
+        }
+        .add-birthday button:hover { background-color: #45a049; }
+
+        /* Popup */
+        .popup {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #FF4081;
+            color: #FFFFFF;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            font-size: 16px;
+        }
+        .popup button {
+            background-color: #333;
+            color: #FFFFFF;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Birthdays</h1>
+
+    <!-- Filter Buttons -->
+    <div class="filter-buttons">
+        <button class="active" onclick="setFilter('all')">All</button>
+        <button onclick="setFilter('family')">Family</button>
+        <button onclick="setFilter('friends')">Friends</button>
+        <button onclick="setFilter('work')">Work</button>
+    </div>
+
+    <!-- Birthday Counter -->
+    <div class="birthday-counter">
+        9 of 30 free birthdays
+    </div>
+
+    <!-- Birthday List -->
+    <div id="birthdayList">
+        <!-- Birthday items will be generated here -->
+    </div>
+
+    <!-- Add/Edit Birthday Form -->
+    <div class="add-birthday">
+        <input type="text" id="name" placeholder="Enter name">
+        <input type="date" id="birthday" placeholder="Select date">
+        <select id="category">
+            <option value="family">Family</option>
+            <option value="friends">Friends</option>
+            <option value="work">Work</option>
+        </select>
+        <button onclick="saveBirthday()">Save Birthday</button>
+    </div>
+</div>
+
+<!-- Popup for Reminder -->
+<div class="popup" id="popup">
+    <span id="popupMessage"></span>
+    <button onclick="closePopup()">Close</button>
+</div>
+
+<script>
+    let birthdays = [
+        { name: 'Rishabh', date: '2024-11-15', category: 'friends' },
+        { name: 'Punam', date: '2025-01-29', category: 'family' },
+        { name: 'Jaideep', date: '2025-02-24', category: 'work' },
+    ];
+    let currentFilter = 'all';
+    let editIndex = null;
+
+    function setFilter(filter) {
+        currentFilter = filter;
+        document.querySelectorAll('.filter-buttons button').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.filter-buttons button[onclick="setFilter('${filter}')"]`).classList.add('active');
+        displayBirthdays();
+    }
+
+    function saveBirthday() {
+        const name = document.getElementById('name').value;
+        const date = document.getElementById('birthday').value;
+        const category = document.getElementById('category').value;
+
+        if (name && date) {
+            const birthdayData = { name, date, category };
+            if (editIndex !== null) {
+                birthdays[editIndex] = birthdayData;
+                editIndex = null;
+            } else {
+                birthdays.push(birthdayData);
+            }
+            clearForm();
+            displayBirthdays();
+        } else {
+            alert("Please enter both name and date");
+        }
+    }
+
+    function clearForm() {
+        document.getElementById('name').value = '';
+        document.getElementById('birthday').value = '';
+        document.getElementById('category').value = 'family';
+    }
+
+    function displayBirthdays() {
+        const birthdayList = document.getElementById('birthdayList');
+        birthdayList.innerHTML = '';
+
+        const filteredBirthdays = currentFilter === 'all' ? birthdays : birthdays.filter(b => b.category === currentFilter);
+
+        filteredBirthdays.forEach((b, index) => {
+            const daysLeft = daysUntilBirthday(b.date);
+            const isToday = daysLeft === 0 ? 'today' : '';
+            const birthdayItem = document.createElement('div');
+            birthdayItem.className = 'birthday-item';
+            birthdayItem.innerHTML = `
+                <div>
+                    <h3>${b.name}</h3>
+                    <p class="birthday-date">${new Date(b.date).toLocaleDateString()}</p>
+                    <small>Category: ${b.category}</small>
+                </div>
+                <div>
+                    <span class="days-left ${isToday}">${daysLeft === 0 ? 'Today' : daysLeft + ' days'}</span>
+                    <button onclick="editBirthday(${index})">Edit</button>
+                </div>
+            `;
+            birthdayList.appendChild(birthdayItem);
+        });
+    }
+
+    function editBirthday(index) {
+        const birthday = birthdays[index];
+        document.getElementById('name').value = birthday.name;
+        document.getElementById('birthday').value = birthday.date;
+        document.getElementById('category').value = birthday.category;
+        editIndex = index;
+    }
+
+    function daysUntilBirthday(date) {
+        const today = new Date();
+        const birthday = new Date(date);
+        birthday.setFullYear(today.getFullYear());
+        if (birthday < today) birthday.setFullYear(today.getFullYear() + 1);
+        const diffTime = Math.abs(birthday - today);
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    function checkReminders() {
+        const upcomingBirthdays = birthdays.filter(b => {
+            const daysLeft = daysUntilBirthday(b.date);
+            return daysLeft <= 3;
+        });
+        
+        if (upcomingBirthdays.length > 0) {
+            const reminderMessages = upcomingBirthdays.map(b => {
+                const daysLeft = daysUntilBirthday(b.date);
+                return `${b.name}'s birthday is ${daysLeft === 0 ? "today" : "in " + daysLeft + " days"}`;
+            });
+            showPopup(reminderMessages.join("<br>"));
+        }
+    }
+
+    function showPopup(message) {
+        const popup = document.getElementById('popup');
+        document.getElementById('popupMessage').innerHTML = message;
+        popup.style.display = 'block';
+    }
+
+    function closePopup() {
+        document.getElementById('popup').style.display = 'none';
+    }
+
+    // Initialize
+    displayBirthdays();
+    checkReminders();
+</script>
+
+</body>
+</html>
