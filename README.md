@@ -38,7 +38,7 @@ Technologies Used
 - JavaScript (localStorage for persistent data)
 
 Index
-![Uploading image.png…]()
+<img width="810" alt="image" src="https://github.com/user-attachments/assets/dc6dc077-1f12-477f-89b8-3016ddc578a2">
 
 
 Index2.0
