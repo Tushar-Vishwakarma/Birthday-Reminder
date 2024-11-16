@@ -37,6 +37,22 @@ Technologies Used
 - CSS
 - JavaScript (localStorage for persistent data)
 
+## What is what?
+
+1. **HTML without database**:
+   - Index.html
+2. **HTML with database**:
+   - Index2.html
+3. **Android**:
+   - activity_main.xml
+   - MainActivity.kt
+  
+## Steps to Generate APK
+- Install Android Studio on your machine.
+- Create a new project and copy the above files into the respective locations (MainActivity.kt in src/main/java and activity_main.xml in res/layout).
+- Build the project by selecting Build > Build Bundle(s)/APK(s) > Build APK(s).
+- The APK file will be generated in the app/build/outputs/apk directory.
+
 Index
 <img width="810" alt="image" src="https://github.com/user-attachments/assets/dc6dc077-1f12-477f-89b8-3016ddc578a2">
 
