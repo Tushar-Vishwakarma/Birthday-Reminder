@@ -1,17 +1,15 @@
 package com.example.birthdayreminder
 
-import android.app.AlertDialog
-import android.app.NotificationChannel
-import android.app.NotificationManager
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.NotificationCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import java.text.SimpleDateFormat
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
@@ -23,23 +21,16 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Initialize birthday list
         birthdayList = loadBirthdays()
 
-        // Set up RecyclerView
         val recyclerView: RecyclerView = findViewById(R.id.recyclerView)
         adapter = BirthdayAdapter(birthdayList, this::editBirthday, this::deleteBirthday)
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
 
-        // Add birthday button
         val addButton: Button = findViewById(R.id.addButton)
         addButton.setOnClickListener { addBirthday() }
 
-        // Notification channel
-        createNotificationChannel()
-
-        // Check for reminders
         checkReminders()
     }
 
@@ -60,6 +51,8 @@ class MainActivity : AppCompatActivity() {
             saveBirthdays()
             adapter.notifyDataSetChanged()
             nameInput.text.clear()
+            scheduleReminder(birthday, 3) // Schedule 3-day notification
+            scheduleReminder(birthday, 0) // Schedule same-day notification
             Toast.makeText(this, "Birthday added!", Toast.LENGTH_SHORT).show()
         } else {
             Toast.makeText(this, "Please enter a name!", Toast.LENGTH_SHORT).show()
@@ -106,14 +99,47 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkReminders() {
         val today = Calendar.getInstance()
+
         birthdayList.forEach { birthday ->
             val calendar = Calendar.getInstance()
             calendar.time = birthday.date
+
             if (calendar.get(Calendar.MONTH) == today.get(Calendar.MONTH) &&
                 calendar.get(Calendar.DAY_OF_MONTH) == today.get(Calendar.DAY_OF_MONTH)) {
                 showNotification("${birthday.name}'s birthday is today!")
             }
+
+            val threeDaysBefore = calendar.clone() as Calendar
+            threeDaysBefore.add(Calendar.DAY_OF_YEAR, -3)
+            if (threeDaysBefore.get(Calendar.MONTH) == today.get(Calendar.MONTH) &&
+                threeDaysBefore.get(Calendar.DAY_OF_MONTH) == today.get(Calendar.DAY_OF_MONTH)) {
+                showNotification("${birthday.name}'s birthday is in 3 days!")
+            }
         }
+    }
+
+    private fun scheduleReminder(birthday: Birthday, daysBefore: Int) {
+        val calendar = Calendar.getInstance()
+        calendar.time = birthday.date
+        calendar.add(Calendar.DAY_OF_YEAR, -daysBefore)
+
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(this, BirthdayNotificationReceiver::class.java).apply {
+            putExtra("name", birthday.name)
+            putExtra("message", "${birthday.name}'s birthday is in $daysBefore days!")
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            birthday.name.hashCode() + daysBefore,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        alarmManager.setExact(
+            AlarmManager.RTC_WAKEUP,
+            calendar.timeInMillis,
+            pendingIntent
+        )
     }
 
     private fun showNotification(message: String) {
@@ -125,18 +151,4 @@ class MainActivity : AppCompatActivity() {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(0, notification)
     }
-
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                "birthdayChannel",
-                "Birthday Notifications",
-                NotificationManager.IMPORTANCE_DEFAULT
-            )
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
-        }
-    }
 }
-
-data class Birthday(val name: String, val date: Date)
