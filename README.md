@@ -46,6 +46,7 @@ Technologies Used
 3. **Android**:
    - activity_main.xml
    - MainActivity.kt
+   - AndroidManifest.xml
   
 ## Steps to Generate APK
 - Install Android Studio on your machine.
